@@ -1,0 +1,6 @@
+rootProject.name = 'autofixture'
+
+include 'autofixture-annotation'
+include 'autofixture-processor'
+include 'autofixture-example'
+
