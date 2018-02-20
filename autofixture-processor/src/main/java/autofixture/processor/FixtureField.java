@@ -15,6 +15,14 @@ public class FixtureField {
         return field.getSimpleName().toString();
     }
 
+    public String getSetterName() {
+        return "set" + getPascalCaseName();
+    }
+
+    public String getGetterName() {
+        return "get" + getPascalCaseName();
+    }
+
     public String getPascalCaseName() {
         return Character.toUpperCase(getName().charAt(0)) + getName().substring(1);
     }

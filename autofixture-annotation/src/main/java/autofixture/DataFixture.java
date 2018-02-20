@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -11,7 +12,7 @@ public abstract class DataFixture<T> {
     private final MethodDataGenerator methodDataGenerator = new MethodDataGenerator();
     private final Class<T> fixtureClass;
 
-    protected HashMap<String, Object> valueMap = new HashMap<>();
+    protected HashMap<String, Supplier<Object>> valueMap = new HashMap<>();
 
     protected DataFixture(Class<T> fixtureClass) {
         this.fixtureClass = fixtureClass;
@@ -43,7 +44,7 @@ public abstract class DataFixture<T> {
             Object value;
 
             if (valueMap.containsKey(setter.getName())) {
-                value = valueMap.get(setter.getName());
+                value = valueMap.get(setter.getName()).get();
             } else {
                 value = methodDataGenerator.generateValue(setter);
             }

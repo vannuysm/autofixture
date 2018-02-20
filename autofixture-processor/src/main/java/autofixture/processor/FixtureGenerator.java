@@ -10,6 +10,7 @@ import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.Elements;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class FixtureGenerator {
@@ -36,7 +37,7 @@ public class FixtureGenerator {
 
         TypeSpec.Builder fixtureBuilder = TypeSpec.classBuilder(this.fixtureClassName)
                 .addModifiers(Modifier.PUBLIC)
-                .superclass(ParameterizedTypeName.get(ClassName.get(DataFixture.class), annotatedClassTypeName))
+                .superclass(ParameterizedTypeName.get(ClassName.get(DataFixture.class), annotatedClassTypeName.box()))
                 .addMethod(generateConstructor());
 
         List<VariableElement> fields = ElementFilter.fieldsIn(annoatedClassEnclosedElements).stream()
@@ -49,7 +50,8 @@ public class FixtureGenerator {
 
                 boolean hasSetter = ElementFilter.methodsIn(annoatedClassEnclosedElements).stream().anyMatch(e -> isSetter(e, fixtureField));
                 if (hasSetter) {
-                    fixtureBuilder.addMethod(generateWith(fixtureField, packageName));
+                    fixtureBuilder.addMethod(generateWithValue(fixtureField, packageName));
+                    fixtureBuilder.addMethod(generateWithSupplier(fixtureField, packageName));
                 }
             }
         }
@@ -64,14 +66,23 @@ public class FixtureGenerator {
                 && element.getParameters().size() == 1;
     }
 
-    private MethodSpec generateWith(FixtureField field, String packageName) {
-        String setterName = "set" + field.getPascalCaseName();
-
+    private MethodSpec generateWithValue(FixtureField field, String packageName) {
         return MethodSpec.methodBuilder("with" + field.getPascalCaseName())
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(field.getTypeName(), "value")
                 .addCode(CodeBlock.builder()
-                        .addStatement("valueMap.put($S, value)", setterName)
+                        .addStatement("return with$L(() -> value)", field.getPascalCaseName())
+                        .build())
+                .returns(ClassName.get(packageName, this.fixtureClassName))
+                .build();
+    }
+
+    private MethodSpec generateWithSupplier(FixtureField field, String packageName) {
+        return MethodSpec.methodBuilder("with" + field.getPascalCaseName())
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterizedTypeName.get(ClassName.get(Supplier.class), ClassName.get(Object.class)), "valueSupplier")
+                .addCode(CodeBlock.builder()
+                        .addStatement("valueMap.put($S, valueSupplier)", field.getSetterName())
                         .addStatement("return this")
                         .build())
                 .returns(ClassName.get(packageName, this.fixtureClassName))
